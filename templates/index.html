@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* 1. Establecer html y body al 100% de la altura del viewport */
+        html, body {
+            height: 100%; /* Hace que ocupen el 100% de la altura de su padre, que es el viewport para <html> */
+            margin: 0; /* Elimina el margen por defecto del body */
+            padding: 0; /* Elimina el padding por defecto del body */
+        }
+
+        /* CSS necesario para el posicionamiento y estilo del tooltip */
+        .custom-tooltip {
+            /* 1. POSICIONAMIENTO ABSOLUTO: Es la clave para moverlo con el ratón. */
+            position: absolute;
+            
+            /* 2. OCULTO POR DEFECTO: No se debe ver hasta que el JavaScript lo muestre. */
+            display: none;
+            
+            /* 3. ESTILO DEL TOOLTIP */
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none; /* Asegura que el tooltip no interfiera con otros eventos del mouse */
+            z-index: 1000; /* Asegura que esté por encima de otros elementos */
+            
+            /* 4. AJUSTE DE POSICIÓN (Opcional): 
+               Esto desplaza el tooltip un poco para que no quede justo debajo del cursor. */
+            transform: translate(15px, 15px); 
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <title>Document</title>
+</head>
+<body class="d-flex flex-column justify-content-center align-items-center h-100" x-data="alpineApp()" x-init="$nextTick(() => run())">
+    <div class="row w-100">
+        <div class="col-sm-12 col-md-4 col-lg-3 mb-2 px-5">
+            <input type="text" placeholder="Nombre de usuario conectado" @keyup.enter="setUserName" class="form-control w-100">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 p-0 h-75">
+            <div class="d-flex" style="height: 75vh;"> 
+                
+                <div class="bg-white p-4 border rounded shadow-lg me-2" style="width: 75vw;" id="mousetrackerarea">
+                </div>
+
+                <div class="bg-light p-4 border rounded shadow-lg ms-2 text-center" style="width: 20vw;">
+                    <h4 class="font-style-bolder">
+                        Usuarios conectados
+                    </h4>
+                    <ul class="list-group">
+                        <template x-for="user in connecteds">
+                            <li class="list-group-item d-flex flex-column text-justify">
+                                <span x-text="user.name"></span> 
+                                <span class="text-primary" style="font-size: 11px;">
+                                    <span x-text="user.id"></span>
+                                    X: <span x-text="user.X"></span>, Y: <span x-text="user.Y"></span>
+                                </span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+<script>
+    function alpineApp() {
+        return {
+            name: null,
+            connecteds: [],
+            websocketClient: null,
+            connectionTracking: {},
+            run() {
+                console.info("App started")
+            },
+            createUserPositionTooltip (userId, name){
+                const currentElement = document.getElementById("id", "custom-tooltip-"+userId)
+                if (currentElement != null && typeof(currentElement) != "undefined") {
+                    return null
+                }
+                const trackerArea = document.getElementById("mousetrackerarea")
+
+                const divArea = document.createElement("div")
+                const mouseAreaCoordX = document.createElement("span")
+                const mouseAreaCoordY = document.createElement("span")
+                const spanSep = document.createElement("span")
+                spanSep.innerText = ", Y:  "
+                
+                divArea.style.display = "none"
+                divArea.setAttribute("id", "custom-tooltip-"+userId)
+                mouseAreaCoordX.setAttribute("id", "coord-x-"+userId)
+                mouseAreaCoordY.setAttribute("id", "coord-y-"+userId)
+
+                trackerArea.appendChild(divArea)
+                divArea.innerText = name+" || "
+                divArea.appendChild(mouseAreaCoordX)
+                divArea.appendChild(mouseAreaCoordY)
+
+            },
+            updateUserPosition(userId, userX, userY) {
+                const tooltip = document.getElementById('custom-tooltip-'+userId);
+                const coordXSpan = document.getElementById('coord-x-'+userId);
+                const coordYSpan = document.getElementById('coord-y-'+userId);
+                const mouseX = userX; // Coordenada horizontal relativa al viewport
+                const mouseY = userY; // Coordenada vertical relativa al viewport
+                // 4. Establecer la posición del tooltip
+                // Usamos event.pageX y event.pageY si el body tiene scroll (para que funcione en toda la página)
+                // o event.clientX/Y si solo queremos que se quede fijo en el área visible (viewport)
+                const posX = userX; 
+                const posY = userY; 
+                tooltip.classList.add("custom-tooltip")
+                tooltip.style.left = `${posX}px`;
+                tooltip.style.top = `${posY}px`;
+
+                // 5. Mostrar el tooltip si estaba oculto (y mantenerlo visible)
+                if (tooltip.style.display === 'none' || tooltip.style.display === '') {
+                    tooltip.style.display = 'block';
+                }
+                
+                // 6. Actualizar las coordenadas dentro del tooltip
+                coordXSpan.textContent = " X: "+mouseX;
+                coordYSpan.textContent = ", Y: "+mouseY;
+            },
+            removeClient(userId) {
+                const tooltip = document.getElementById('custom-tooltip-'+userId);
+
+                document.getElementById("mousetrackerarea").removeChild(tooltip)
+            },
+            setUserName(event) {
+                this.name = event.target.value
+                const currentUser = {name: this.name, id: Math.random(), X: 43, Y: 123}
+                this.connecteds.push(currentUser)
+                this.createUserPositionTooltip(currentUser.id, currentUser.name)
+
+                console.log({c: this.connecteds}, currentUser)
+                this.startMouseEnvetTracking()
+                this.websocketClient = new WebSocket(`ws://127.0.0.1:8090/ws/?name=${this.name}&id=${currentUser.id}`)
+
+                this.websocketClient.onopen = (e) => {
+                    console.log("Websocket connected")
+                }
+
+                this.websocketClient.onmessage = (e) => {
+                    const jsonResponse = JSON.parse(e.data)
+                    if (parseFloat(jsonResponse.id) == this.connecteds[0].id) {
+                        return
+                    }
+
+                    if (jsonResponse.action == "ACT_ADD_NEW_USER") {
+                        this.connecteds.push({name: jsonResponse.name, id: jsonResponse.id, X: jsonResponse.X, Y: jsonResponse.Y})
+                        this.createUserPositionTooltip(jsonResponse.id, jsonResponse.name)
+                        this.updateUserPosition(jsonResponse.id, jsonResponse.X, jsonResponse.Y)
+                        return
+                    } 
+
+                    else if(jsonResponse.action == "ACT_UPDATE_POSITION") {
+                        this.updateUserPosition(jsonResponse.id, jsonResponse.X, jsonResponse.Y)
+                        this.connecteds = this.connecteds.map(user => {
+                            if (user.id == parseFloat(jsonResponse.id)) {
+                                user.X = jsonResponse.X
+                                user.Y = jsonResponse.Y
+                                return user
+                            }
+                            return user
+                        })
+                    }
+
+                    else if (jsonResponse.action == "ACT_REMOVE_USER") {
+                        this.removeClient(jsonResponse.id)
+                        this.connecteds = this.connecteds.filter(user => user.id != parseFloat(jsonResponse.id))
+                        return
+                    }
+                }
+
+                this.websocketClient.onclose = (e) => {
+                    console.log("Websocket closed")
+                }
+
+            },
+            startMouseEnvetTracking() { 
+                
+                document.getElementById("mousetrackerarea").addEventListener("mousemove", (event) => {// Obtener las coordenadas X y Y del evento del mouseconst tooltip = document.getElementById('custom-tooltip');
+                    const connected = this.connecteds[0]
+                    if (typeof(this.connecteds) == "undefined" || this.connecteds.length == 0 ) {
+                        return null
+                    }
+                    const tooltip = document.getElementById('custom-tooltip-'+connected.id);
+                    const coordXSpan = document.getElementById('coord-x-'+connected.id);
+                    const coordYSpan = document.getElementById('coord-y-'+connected.id);
+                    const mouseX = event.clientX; // Coordenada horizontal relativa al viewport
+                    const mouseY = event.clientY; // Coordenada vertical relativa al viewport
+                    // 4. Establecer la posición del tooltip
+                    // Usamos event.pageX y event.pageY si el body tiene scroll (para que funcione en toda la página)
+                    // o event.clientX/Y si solo queremos que se quede fijo en el área visible (viewport)
+                    const posX = event.pageX; 
+                    const posY = event.pageY; 
+                    tooltip.classList.add("custom-tooltip")
+                    tooltip.style.left = `${posX}px`;
+                    tooltip.style.top = `${posY}px`;
+
+                    // 5. Mostrar el tooltip si estaba oculto (y mantenerlo visible)
+                    if (tooltip.style.display === 'none' || tooltip.style.display === '') {
+                        tooltip.style.display = 'block';
+                    }
+                    
+                    // 6. Actualizar las coordenadas dentro del tooltip
+                    coordXSpan.textContent = " X: "+mouseX;
+                    coordYSpan.textContent = ", Y: "+mouseY;
+                    this.connecteds[0].X = mouseX
+                    this.connecteds[0].Y = mouseY
+                    this.websocketClient.send(
+                        JSON.stringify({X: mouseX, Y: mouseY})
+                    )
+
+                })
+            }
+        }
+    }
+</script>
+</html>
