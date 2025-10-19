@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	muxServer := server.NewServer("127.0.0.1:8090", nil)
 	socket := ws.NewWebsocketHandler(muxServer, &ctx)
 
@@ -23,5 +23,7 @@ func main() {
 
 	muxServer.Run(func() {
 		log.Println("Server running shutdown routine")
+		socket.Shutdown()
+		cancel()
 	})
 }

@@ -109,6 +109,8 @@ func (hub *Hub) BroadCastRemoveUser(conn *websocket.Conn) {
 	for _, client := range hub.clients {
 		client.send <- ResponseClient{Position: Position{X: 0, Y: 0}, Client: *hub.clients[conn], Action: REMOVE_USER}
 	}
+
+	conn.Close()
 	delete(hub.clients, conn)
 }
 
@@ -162,4 +164,13 @@ func (hub *Hub) UpdateConnectedUsers(conn *websocket.Conn) {
 
 func (hub *Hub) PrintTrack(conn *websocket.Conn) {
 	// log.Printf("Position.X: %d, Position.Y: %d", hub.clients[conn].position.X, hub.clients[conn].position.Y)
+}
+
+func (hub *Hub) CleanupConnections() {
+	hub.Lock()
+	defer hub.Unlock()
+	for _, client := range hub.clients {
+		hub.unregister <- client.conn
+	}
+
 }

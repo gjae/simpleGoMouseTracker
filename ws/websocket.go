@@ -65,5 +65,5 @@ func (ws *WebsocketHandler) UpgradeConnection(ctx context.Context) func(http.Res
 }
 
 func (ws *WebsocketHandler) Shutdown() {
-
+	ws.hub.CleanupConnections()
 }
