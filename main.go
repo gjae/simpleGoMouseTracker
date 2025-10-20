@@ -16,7 +16,7 @@ var htmlTemplate embed.FS
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
-	muxServer := server.NewServer("127.0.0.1:8090", nil)
+	muxServer := server.NewServer("0.0.0.0:80", nil)
 	socket := ws.NewWebsocketHandler(muxServer, &ctx)
 
 	muxServer.HandlerFunc("/", func(w http.ResponseWriter, r *http.Request) {
