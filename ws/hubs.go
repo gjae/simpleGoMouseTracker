@@ -126,6 +126,9 @@ func (hub *Hub) Broadcast(message Position, conn *websocket.Conn) {
 	hub.Lock()
 	defer hub.Unlock()
 	for _, client := range hub.clients {
+		if client == nil || client.conn == nil {
+			continue
+		}
 		client.send <- ResponseClient{Position: message, Client: *hub.clients[conn], Action: UPDATE_POSITION}
 	}
 }
@@ -135,6 +138,9 @@ func (hub *Hub) BroadcastNewUser(conn *websocket.Conn) {
 	defer hub.Unlock()
 
 	for _, client := range hub.clients {
+		if client == nil || client.conn == nil {
+			continue
+		}
 		client.send <- ResponseClient{Position: Position{X: 43, Y: 137}, Client: *hub.clients[conn], Action: ACTION_NEW_USER}
 	}
 }
