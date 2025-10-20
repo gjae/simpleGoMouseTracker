@@ -142,6 +142,10 @@ func (hub *Hub) BroadcastNewUser(conn *websocket.Conn) {
 func (hub *Hub) SetUser(conn *websocket.Conn, name string, id string) {
 	hub.Lock()
 	defer hub.Unlock()
+	if _, ok := hub.clients[conn]; !ok {
+		return
+	}
+
 	hub.clients[conn].Name = name
 	hub.clients[conn].ID = id
 
