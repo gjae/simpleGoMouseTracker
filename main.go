@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"embed"
 	"log"
 	"net/http"
-	"path"
+	"text/template"
 
 	"github.com/gjae/wsmousetracker/server"
 	"github.com/gjae/wsmousetracker/ws"
 )
+
+//go:embed templates
+var htmlTemplate embed.FS
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -16,7 +20,12 @@ func main() {
 	socket := ws.NewWebsocketHandler(muxServer, &ctx)
 
 	muxServer.HandlerFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, path.Dir("./templates/index.html"))
+		template, err := template.ParseFS(htmlTemplate, "templates/index.html")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		_ = template.Execute(w, nil)
 	})
 
 	muxServer.HandlerFunc("/ws/", socket.UpgradeConnection(ctx))
