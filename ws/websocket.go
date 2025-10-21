@@ -47,8 +47,6 @@ func (ws *WebsocketHandler) UpgradeConnection(ctx context.Context) func(http.Res
 			log.Println(r.URL.Query().Get("name"), r.URL.Query().Get("id"))
 			if ws.hub != nil {
 				ws.hub.SetUser(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
-				ws.hub.UpdateConnectedUsers(wsConn)
-				ws.hub.BroadcastNewUser(wsConn)
 			} else {
 				log.Println("HUB is nil")
 			}

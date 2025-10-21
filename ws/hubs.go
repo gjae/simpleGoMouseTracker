@@ -75,6 +75,8 @@ func (hub *Hub) StartClientEvents(ctx context.Context) {
 				hub.Lock()
 				hub.clients[conn] = &Client{send: make(chan ResponseClient), conn: conn}
 				log.Println("[NEW CLIENT]: ", conn.RemoteAddr())
+				hub.UpdateConnectedUsers(conn)
+				hub.BroadcastNewUser(conn)
 				go hub.clients[conn].ClientBroadcast(ctx)
 				hub.Unlock()
 			case <-ctx.Done():
