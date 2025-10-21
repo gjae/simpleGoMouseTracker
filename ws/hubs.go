@@ -156,6 +156,11 @@ func (hub *Hub) SetUser(conn *websocket.Conn, name string, id string) {
 	hub.clients[conn].ID = id
 
 	log.Println("User setted: ", hub.clients[conn].Name, hub.clients[conn].ID)
+	go func() {
+
+		hub.UpdateConnectedUsers(conn)
+		hub.BroadcastNewUser(conn)
+	}()
 }
 
 func (hub *Hub) SetUserPosition(conn *websocket.Conn, position *Position) {
