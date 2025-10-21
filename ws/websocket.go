@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gjae/wsmousetracker/server"
 	"github.com/gorilla/websocket"
@@ -45,11 +46,12 @@ func (ws *WebsocketHandler) UpgradeConnection(ctx context.Context) func(http.Res
 			defer wsConn.Close()
 			ws.hub.AddClient(wsConn)
 			log.Println(r.URL.Query().Get("name"), r.URL.Query().Get("id"))
-			if ws.hub != nil {
-				ws.hub.SetUser(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
-			} else {
-				log.Println("HUB is nil")
-			}
+
+			ws.hub.SetUser(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
+
+			time.Sleep(1 * time.Second)
+			ws.hub.UpdateConnectedUsers(wsConn)
+			ws.hub.BroadcastNewUser(wsConn)
 			for {
 				var position Position
 				err := wsConn.ReadJSON(&position)
