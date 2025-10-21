@@ -43,10 +43,7 @@ func (ws *WebsocketHandler) UpgradeConnection(ctx context.Context) func(http.Res
 
 		go func(wsConn *websocket.Conn) {
 			defer wsConn.Close()
-			ws.hub.AddClient(wsConn)
-			log.Println(r.URL.Query().Get("name"), r.URL.Query().Get("id"))
-
-			ws.hub.SetUser(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
+			ws.hub.AddClient(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
 
 			for {
 				var position Position

@@ -19,6 +19,12 @@ type Position struct {
 	Y int64 `json:"Y"`
 }
 
+type NewClientRegistered struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+	conn *websocket.Conn
+}
+
 type Client struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -29,7 +35,7 @@ type Client struct {
 
 type Hub struct {
 	clients    map[*websocket.Conn]*Client
-	register   chan *websocket.Conn
+	register   chan *NewClientRegistered
 	unregister chan *websocket.Conn
 	broadcast  chan Position
 	sync.Mutex
@@ -43,7 +49,7 @@ type ResponseClient struct {
 
 func NewClientHub() *Hub {
 	return &Hub{
-		register:   make(chan *websocket.Conn),
+		register:   make(chan *NewClientRegistered),
 		unregister: make(chan *websocket.Conn),
 		clients:    make(map[*websocket.Conn]*Client),
 		broadcast:  make(chan Position),
@@ -67,16 +73,18 @@ func (c *Client) ClientBroadcast(ctx context.Context) {
 }
 
 func (hub *Hub) StartClientEvents(ctx context.Context) {
-	go func(newClient <-chan *websocket.Conn) {
+	go func(newClient <-chan *NewClientRegistered) {
 
 		for {
 			select {
 			case conn := <-newClient:
 				hub.Lock()
-				hub.clients[conn] = &Client{send: make(chan ResponseClient), conn: conn}
-				log.Println("[NEW CLIENT]: ", conn.RemoteAddr())
-				go hub.clients[conn].ClientBroadcast(ctx)
+				hub.clients[conn.conn] = &Client{send: make(chan ResponseClient), conn: conn.conn, Name: conn.Name, ID: conn.ID}
+				log.Println("[NEW CLIENT]: ", conn.conn.RemoteAddr())
+				go hub.clients[conn.conn].ClientBroadcast(ctx)
 				hub.Unlock()
+				hub.UpdateConnectedUsers(conn.conn)
+				hub.BroadcastNewUser(conn.conn)
 			case <-ctx.Done():
 				log.Println("[NEW CLIENT] : CLOSE CHANNEL")
 				close(hub.register)
@@ -114,8 +122,8 @@ func (hub *Hub) BroadCastRemoveUser(conn *websocket.Conn) {
 	delete(hub.clients, conn)
 }
 
-func (hub *Hub) AddClient(conn *websocket.Conn) {
-	hub.register <- conn
+func (hub *Hub) AddClient(conn *websocket.Conn, name, id string) {
+	hub.register <- &NewClientRegistered{conn: conn, Name: name, ID: id}
 }
 
 func (hub *Hub) RemoveClient(conn *websocket.Conn) {
@@ -135,7 +143,7 @@ func (hub *Hub) Broadcast(message Position, conn *websocket.Conn) {
 
 func (hub *Hub) BroadcastNewUser(conn *websocket.Conn) {
 	hub.Lock()
-	defer hub.Unlock()
+	log.Println("Difundiendo usuarios conectados")
 
 	for _, client := range hub.clients {
 		if client == nil || client.conn == nil {
@@ -143,6 +151,9 @@ func (hub *Hub) BroadcastNewUser(conn *websocket.Conn) {
 		}
 		client.send <- ResponseClient{Position: Position{X: 43, Y: 137}, Client: *hub.clients[conn], Action: ACTION_NEW_USER}
 	}
+
+	log.Println("Usuarios conectados difundidos")
+	hub.Unlock()
 }
 
 func (hub *Hub) SetUser(conn *websocket.Conn, name string, id string) {
@@ -157,8 +168,6 @@ func (hub *Hub) SetUser(conn *websocket.Conn, name string, id string) {
 	log.Println("User setted: ", hub.clients[conn].Name, hub.clients[conn].ID)
 	hub.Unlock()
 
-	hub.UpdateConnectedUsers(conn)
-	hub.BroadcastNewUser(conn)
 }
 
 func (hub *Hub) SetUserPosition(conn *websocket.Conn, position *Position) {
@@ -170,6 +179,7 @@ func (hub *Hub) SetUserPosition(conn *websocket.Conn, position *Position) {
 }
 
 func (hub *Hub) UpdateConnectedUsers(conn *websocket.Conn) {
+	log.Println("Difundiendo nuevo usuario")
 	for _, client := range hub.clients {
 		hub.clients[conn].send <- ResponseClient{Position: Position{X: 43, Y: 137}, Client: *client, Action: ACTION_NEW_USER}
 	}
