@@ -87,7 +87,7 @@
             },
             createUserPositionTooltip (userId, name){
                 const currentElement = document.getElementById("id", "custom-tooltip-"+userId)
-                if (currentElement) {
+                if (currentElement != null && typeof(currentElement) != "undefined") {
                     return null
                 }
                 const trackerArea = document.getElementById("mousetrackerarea")
@@ -154,7 +154,7 @@
 
                 this.websocketClient.onmessage = (e) => {
                     const jsonResponse = JSON.parse(e.data)
-                    if (parseFloat(jsonResponse.id) == this.connecteds[0].id || jsonResponse.id == this.connecteds[0].id) {
+                    if (parseFloat(jsonResponse.id) == this.connecteds[0].id) {
                         return
                     }
 
