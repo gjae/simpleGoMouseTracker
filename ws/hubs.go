@@ -151,12 +151,12 @@ func (hub *Hub) SetUser(conn *websocket.Conn, name string, id string) {
 	if _, ok := hub.clients[conn]; !ok {
 		return
 	}
-
-	hub.clients[conn].Name = name
-	hub.clients[conn].ID = id
-
 	log.Println("User setted: ", hub.clients[conn].Name, hub.clients[conn].ID)
 	go func() {
+		hub.Lock()
+		hub.clients[conn].Name = name
+		hub.clients[conn].ID = id
+		hub.Unlock()
 
 		hub.UpdateConnectedUsers(conn)
 		hub.BroadcastNewUser(conn)
