@@ -146,7 +146,7 @@
 
                 console.log({c: this.connecteds}, currentUser)
                 this.startMouseEnvetTracking()
-                this.websocketClient = new WebSocket(`wss://simplegomousetracker-production.up.railway.app/ws/?name=${this.name}&id=${currentUser.id}`)
+                this.websocketClient = new WebSocket(`ws://simplegomousetracker-production.up.railway.app/ws/?name=${this.name}&id=${currentUser.id}`)
 
                 this.websocketClient.onopen = (e) => {
                     console.log("Websocket connected")

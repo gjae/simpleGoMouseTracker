@@ -45,9 +45,13 @@ func (ws *WebsocketHandler) UpgradeConnection(ctx context.Context) func(http.Res
 			defer wsConn.Close()
 			ws.hub.AddClient(wsConn)
 			log.Println(r.URL.Query().Get("name"), r.URL.Query().Get("id"))
-			ws.hub.SetUser(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
-			ws.hub.UpdateConnectedUsers(wsConn)
-			ws.hub.BroadcastNewUser(wsConn)
+			if ws.hub != nil {
+				ws.hub.SetUser(wsConn, r.URL.Query().Get("name"), r.URL.Query().Get("id"))
+				ws.hub.UpdateConnectedUsers(wsConn)
+				ws.hub.BroadcastNewUser(wsConn)
+			} else {
+				log.Println("HUB is nil")
+			}
 			for {
 				var position Position
 				err := wsConn.ReadJSON(&position)
